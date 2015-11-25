@@ -60,7 +60,17 @@
 		});
 		map.addControl(drawControl);
 		
-		var el = L.control.elevation();
+		var el = L.control.elevation({
+    position: "bottomright",
+    theme: "steelblue-theme", //default: lime-theme
+    width: 600,
+    height: 125,
+    margins: {
+        top: 10,
+        right: 20,
+        bottom: 30,
+        left: 50
+    }});
 		el.addTo(map);
 		
 		map.on('draw:drawstart', function (e) {
