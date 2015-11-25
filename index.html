@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Coordinate viewing test page</title>
+	<meta name="viewport" content="initial-scale=1.0, user-scalable=no" />
+	 <style>
+	   html, body, #map {
+	      height:100%;
+	      width:100%;
+	      padding:0px;
+	      margin:0px;
+	   }
+	</style>
+	<script src="http://d3js.org/d3.v3.min.js" charset="utf-8"></script>
+	<link rel="stylesheet" href="http://cdn.leafletjs.com/leaflet-0.7.2/leaflet.css" />
+	<!--[if lte IE 8]><link rel="stylesheet" href="http://cdn.leafletjs.com/leaflet-0.7.2/leaflet.ie.css" /><![endif]-->
+
+	<link rel="stylesheet" href="../dist/leaflet.elevation-0.0.4.css" />
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/0.2.3/leaflet.draw.css" />
+	
+
+	<script type="text/javascript" src="http://cdn.leafletjs.com/leaflet-0.7.2/leaflet.js"></script>
+	<script type="text/javascript" src="../dist/leaflet.elevation-0.0.4.min.js"></script>
+	<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/0.2.3/leaflet.draw.js"></script>
+	
+	<script src="http://code.jquery.com/jquery-1.11.0.min.js"></script>
+
+	
+</head>
+<body>
+
+	<div id="map"></div>
+
+	<script type="text/javascript">
+		var map = new L.Map('map');
+
+		var url = 'http://otile{s}.mqcdn.com/tiles/1.0.0/map/{z}/{x}/{y}.jpeg',
+			attr ='Tiles Courtesy of <a href="http://www.mapquest.com/">MapQuest</a> &mdash; Map data &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors, <a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>',
+			service = new L.TileLayer(url, {subdomains:"1234",attribution: attr});
+
+		var bounds = new L.LatLngBounds(new L.LatLng(-44.6, 170), new L.LatLng(-45, 168));
+		map.addLayer(service).fitBounds(bounds);
+	
+		// Initialise the FeatureGroup to store editable layers
+		var drawnItems = new L.FeatureGroup();
+		map.addLayer(drawnItems);
+		
+		var lines3d = new L.layerGroup();
+		map.addLayer(lines3d);
+		
+		// Initialise the draw control and pass it the FeatureGroup of editable layers
+		var drawControl = new L.Control.Draw({
+		    draw: {
+				polygon: false,
+				polyline: true,
+				rectangle: false,
+				circle: false,
+				marker: false
+			}
+		});
+		map.addControl(drawControl);
+		
+		var el = L.control.elevation();
+		el.addTo(map);
+		
+		map.on('draw:drawstart', function (e) {
+			console.log('in draw start');
+			el.clear();
+		});
+		
+	
+		map.on('draw:created', function (e) {
+			console.log('in draw created');
+			//close draw segment
+			el.clear();
+			//map.removeEventListener('draw:created');
+			
+			var layer = e.layer;
+			var feature = e.layer.toGeoJSON();
+			
+			//convert to esriJSON
+			var esriJSON = '{"geometryType":"esriGeometryPolyline","spatialReference":{"wkid":"4326"},"fields": [],"features":[{"geometry": {"type":"polyline", "paths":[' + JSON.stringify(feature.geometry.coordinates) + ']}}]}'
+			
+			var requestURL = 'http://elevation.arcgis.com/arcgis/rest/services/Tools/ElevationSync/GPServer/Profile/execute';
+						
+			//do ajax call for future precip layer, needs to happen even if only runoff value is needed for this region
+			$.ajax({
+				type: "POST",
+				url: requestURL,
+				data: 'InputLineFeatures=' + esriJSON + '&returnZ=true&f=pjson',
+				dataType: "json",
+				success: function(json){	
+
+					var coords = json.results[0].value.features[0].geometry.paths[0];
+					
+					if (coords.length > 0) {
+					
+						var geojson = {"name":"NewFeatureType","type":"FeatureCollection"
+						,"features":[
+						{"type":"Feature","geometry":{"type":"LineString","coordinates":coords},"properties":""}
+						]};						
+						
+						var layer = L.geoJson(geojson,{
+							onEachFeature: el.addData.bind(el)
+						});
+						
+						lines3d.addLayer(layer);
+					}
+				}
+			});
+		});
+	</script>
+</body>
+</html>
