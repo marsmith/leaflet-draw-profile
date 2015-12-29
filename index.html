@@ -34,11 +34,7 @@
 	
 		var bounds = new L.LatLngBounds(new L.LatLng(-44.6, 170), new L.LatLng(-45, 168));
 		map.addLayer(service).fitBounds(bounds);
-		
-		//store 3d lines
-		var lines3d = new L.layerGroup();
-		map.addLayer(lines3d);
-		
+				
 		// Initialize the draw control
 		var drawControl = new L.Control.Draw({
 		    draw: {
@@ -65,7 +61,7 @@
 		
 		//do something after draw finishes
 		map.on('draw:created', function (e) {
-			var layer = e.layer;
+
 			var feature = e.layer.toGeoJSON();
 			
 			//convert to esriJSON
@@ -89,12 +85,10 @@
 						{"type":"Feature","geometry":{"type":"LineString","coordinates":coords},"properties":""}
 						]};						
 						
-						var layer = L.geoJson(geojson,{
+						L.geoJson(geojson,{
 							onEachFeature: el.addData.bind(el)
-						});
+						}).addTo(map);
 	
-						//add line to map
-						lines3d.addLayer(layer);
 					}
 				}
 			});
